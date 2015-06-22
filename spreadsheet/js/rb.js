@@ -58,7 +58,8 @@ var span = (function(text, title, classAttr) {
   return span;
 });
 var getSoil = (function(soil_material, soil_max_layers, soil_layer_offset, soil_bonus_per_layer) {
-  return soil_material ? soil_material.replace('_', ' ') + ' ×' + soil_max_layers + (soil_layer_offset ? '+' + soil_layer_offset : '') + ' = ' + ((soil_bonus_per_layer * soil_max_layers + 1) * 100) + '%' : null;
+  if (!soil_material || soil_max_layers == 0) return null;
+  return soil_material.replace('_', ' ') + ' ×' + soil_max_layers + (soil_layer_offset ? '+' + soil_layer_offset : '') + ' = ' + ((soil_bonus_per_layer * soil_max_layers + 1) * 100) + '%';
 });
 var displayGrowth = (function(value, persistent_growth_period) {
   return !value ? null : (persistent_growth_period ? Math.round((persistent_growth_period / value) * 100) / 100 + 'h' : value * 100 + '%');
@@ -167,7 +168,15 @@ xhr.onload = (function(e) {
     var biomeValues = biomes.map(biomeGrowth.bind(null, growth, biomesAliasMap));
     var bestValue = _.max([_.max(biomeValues), growth.base_rate]);
     biomeValues = biomeValues.map(biomeCell.bind(null, growth, bestValue));
-    row(tbody, [key, growth.persistent_growth_period ? growth.persistent_growth_period + 'h' : growth.base_rate * 100 + '%', growth.needs_sunlight === 'true' ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']], growth.not_full_sunlight_multiplier ? (growth.not_full_sunlight_multiplier * 100) + '%' : null, growth.greenhouse_rate ? [growth.greenhouse_rate * 100 + '%', ['class', 'success']] : ['✗', ['class', 'danger']], growth.greenhouse_ignore_biome ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']], getSoil(growth.soil_material, growth.soil_max_layers, growth.soil_layer_offset, growth.soil_bonus_per_layer)].concat(biomeValues).concat([ideals(key, growth, bestValue)]));
+    row(tbody, [
+      key,
+      growth.persistent_growth_period ? growth.persistent_growth_period + 'h' : growth.base_rate * 100 + '%',
+      growth.needs_sunlight === 'true' ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']],
+      growth.not_full_sunlight_multiplier ? (growth.not_full_sunlight_multiplier * 100) + '%' : null,
+      growth.greenhouse_rate ? [growth.greenhouse_rate * 100 + '%', ['class', 'success']] : ['✗', ['class', 'danger']],
+      growth.greenhouse_ignore_biome ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']],
+      getSoil(growth.soil_material, growth.soil_max_layers, growth.soil_layer_offset, growth.soil_bonus_per_layer)
+    ].concat(biomeValues).concat([ideals(key, growth, bestValue)]));
   }));
   var biomeValues = biomes.map(biomeGrowth.bind(null, config.fish_drops.mat_RAW_FISH, biomesAliasMap));
   var bestValue = _.max([_.max(biomeValues), config.fish_drops.mat_RAW_FISH.base_rate]);
