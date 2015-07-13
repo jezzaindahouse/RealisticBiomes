@@ -183,5 +183,5 @@ xhr.onload = (function(e) {
   biomeValues = biomeValues.map(biomeCell.bind(null, config.fish_drops.mat_RAW_FISH, bestValue));
   row(tbody, ['RAW_FISH', config.fish_drops.mat_RAW_FISH.base_rate * 100 + '%', ['✗', ['class', 'danger']], null, ['✗', ['class', 'danger']], ['✗', ['class', 'danger']], null].concat(biomeValues).concat([ideals('RAW_FISH', config.fish_drops.mat_RAW_FISH, bestValue)]));
 });
-xhr.open("GET", '//cdn.rawgit.com/Civcraft/RealisticBiomes/master/config.yml', true);
+xhr.open("GET", '../config.yml', true);
 xhr.send();
