@@ -55,40 +55,30 @@ var span = (function(text, title, classAttr) {
   textContent(span, text);
   span.setAttribute('class', classAttr);
   span.setAttribute('title', title);
+  span.setAttribute('style', 'cursor:help');
   return span;
+});
+var getSoilBonus = (function(soil_material, soil_max_layers, soil_layer_offset, soil_bonus_per_layer) {
+  if (!soil_material || soil_max_layers == 0) return 1;
+  return (soil_bonus_per_layer * soil_max_layers + 1);
 });
 var getSoil = (function(soil_material, soil_max_layers, soil_layer_offset, soil_bonus_per_layer) {
   if (!soil_material || soil_max_layers == 0) return null;
   return soil_material.replace('_', ' ') + ' ×' + soil_max_layers + (soil_layer_offset ? '+' + soil_layer_offset : '') + ' = ' + ((soil_bonus_per_layer * soil_max_layers + 1) * 100) + '%';
 });
+
+var hours = function(float) {
+  if (float % 1 === 0) {
+    return float + 'h';
+  } else {
+    return float.toFixed(2) + 'h';
+  }
+}
+
 var displayGrowth = (function(value, persistent_growth_period) {
   return !value ? null : (persistent_growth_period ? Math.round((persistent_growth_period / value) * 100) / 100 + 'h' : value * 100 + '%');
 });
-var idealsMap = {
-  'CROPS': '(wheat) like other crops can be boosted with 4 clay blocks below the farmland the crop is on',
-  'NETHER_WARTS': '4 additional soul sand blocks below and opaque ceiling',
-  'SWAMP': 'Does not spawn naturally (like vanilla)',
-  'BROWN_MUSHROOM': 'Vanilla restrictions apply: no spread if more than 5 in 9×9×3 area around mushroom',
-  'RED_MUSHROOM': 'Vanilla restrictions apply: no spread if more than 5 in 9×9×3 area around mushroom',
-  'CHICKEN': 'Cannot breed and only hatch from eggs (egg spawn rate appears to be vanilla)',
-  'HORSE': 'Horse stats are normalized and not inherited',
-  'RAW_FISH': 'No enchanted books, other loot is reduced depending on it\'s value'
-};
-var calculateIdeals = (function(growth, bestFactor) {
-  var factor = bestFactor;
-  if (growth.persistent_growth_period) {
-    if (growth.soil_material) {
-      factor *= 1 + growth.soil_max_layers * growth.soil_bonus_per_layer;
-    }
-    return Math.round((growth.persistent_growth_period / factor) * (growth.not_full_sunlight_multiplier > 1 ? 1 / growth.not_full_sunlight_multiplier : 1) * 100) / 100 + 'h';
-  } else {
-    return growth.base_rate * bestFactor * 100 + '%';
-  }
-});
-var ideals = (function(key, growth, bestFactor) {
-  var hasDesc = typeof idealsMap[key] !== 'undefined';
-  return [calculateIdeals(growth, bestFactor) + (hasDesc ? ' - ' + idealsMap[key] : ''), ['class', 'success']];
-});
+
 var biomeCell = (function(growth, bestValue, value) {
   if (value === bestValue) {
     return [displayGrowth(value, growth.persistent_growth_period), ['class', 'success']];
@@ -114,7 +104,7 @@ var biomeGrowth = (function(growth, biomesAliasMap, biome) {
 });
 var xhr = new XMLHttpRequest();
 xhr.onload = (function(e) {
-  var config = jsyaml.safeLoad(xhr.responseText, {schema: jsyaml.FAILSAFE_SCHEMA}).realistic_biomes;
+  var config = jsyaml.safeLoad(xhr.responseText, {schema: jsyaml.JSON_SCHEMA}).realistic_biomes;
   var biomes = _.uniq(Object.keys(config.biome_aliases).concat(_.flatten(_.values(config.growth).map((function(growth) {
     return _.keys(growth.biomes);
   })))));
@@ -144,13 +134,21 @@ xhr.onload = (function(e) {
     'SWAMPLAND': 'SWAMP',
     'OCEAN': span('OCEAN', 'OCEAN and FROZEN_OCEAN')
   };
-  row(thead, [null, span(null, 'Base growth or persistance: If persistence is enabled, the crop will grow to maturity regardless of whether the chunk if loaded. If not, the percentage refers roughly to vanilla growth or spawn rate.', 'glyphicon glyphicon-time'), span(null, 'Needs sunlight? If yes and not exposed to full sunlight, the growth is reduced exponentially the lower the light level. Additionally, the rate is further reduced according to "Low Light" modifier. Disregard if using glowstone.', 'glyphicon glyphicon-certificate'), span(null, 'Low Light: If a crop is exposed to anything less than full sunlight (15) this modifier is applied. Disregard if using glowstone.', 'glyphicon glyphicon-adjust'), span(null, 'Greenhouse: When placed immediately adjacent to glowstone (sharing a face with the block) a crop will ignore the sunlight modifiers and use this one instead, if this rate is an improvement. The base rate and soil modifiers still apply, biome modifier applies depending on "Greenhouse ignores biome".', 'glyphicon glyphicon-home'), span(null, 'Greenhouse ignores biome requirements? If yes and greenhouse, then biome rate is ignored.', 'glyphicon glyphicon-globe'), span(null, 'When placed below the crop, blocks of this type provide a bonus, up to the amount listed: material ×max-layers +offset-below-from-crop = growth', 'glyphicon glyphicon-tower')].concat(biomes.map((function(biome) {
+  row(thead, [
+    null,
+    span(null, 'When placed below the crop, blocks of this type provide a fertilizer bonus, up to the amount listed: material ×max-layers +offset-below-from-crop = growth', 'glyphicon glyphicon-tint'),
+    span(null, 'Base growth or persistance: If persistence is enabled, the crop will grow to maturity regardless of whether the chunk if loaded. If not, the percentage refers roughly to vanilla growth or spawn rate.', 'glyphicon glyphicon-time'),
+    span(null, 'Needs sunlight? If yes and not exposed to full sunlight, the growth is reduced exponentially the lower the light level. Additionally, the rate is further reduced according to "Low Light" modifier. Disregard if using glowstone.', 'glyphicon glyphicon-certificate'),
+    span(null, 'Low Light: If a crop is exposed to anything less than full sunlight (15) this modifier is applied. Disregard if using glowstone.', 'glyphicon glyphicon-adjust'),
+    span('Greenhouse', 'Greenhouse: When placed immediately adjacent to glowstone (sharing a face with the block) a crop will ignore the sunlight modifiers and use this one instead, if this rate is an improvement. The base rate and soil modifiers still apply, biome modifier applies depending on "Greenhouse ignores biome".'),
+  ].concat(biomes.map((function(biome) {
     return (biomeNamesMap[biome] || biome);
-  }))).concat('Ideal conditions'));
+  }))));
+
   var tbody = element('tbody', table);
-  var pre = document.createElement('pre');
-  document.body.appendChild(pre);
-  pre.innerText = JSON.stringify(config, null, '\t');
+  // var pre = document.createElement('pre');
+  // document.body.appendChild(pre);
+  // pre.innerText = JSON.stringify(config, null, '\t');
   _.each(config.growth, (function(growth, key) {
     if (key === key.toLowerCase() || key.indexOf('tree_') !== -1) {
       return ;
@@ -165,23 +163,49 @@ xhr.onload = (function(e) {
       growth.biomes = _.extend(growthBiomes || {}, _.cloneDeep(config.growth[inherit].biomes));
       inherit = config.growth[inherit].inherit;
     }
-    var biomeValues = biomes.map(biomeGrowth.bind(null, growth, biomesAliasMap));
+
+    var soilBonus = 1 / getSoilBonus(growth.soil_material, growth.soil_max_layers, growth.soil_layer_offset, growth.soil_bonus_per_layer);
+
+    var biomeValues = biomes.map(biomeGrowth.bind(null, growth, biomesAliasMap))
+      .map(function(value) {
+        if (value === null) {
+          return null;
+        }
+        return value * (1 / soilBonus);
+      });
+
     var bestValue = _.max([_.max(biomeValues), growth.base_rate]);
     biomeValues = biomeValues.map(biomeCell.bind(null, growth, bestValue));
+
     row(tbody, [
       key,
-      growth.persistent_growth_period ? growth.persistent_growth_period + 'h' : growth.base_rate * 100 + '%',
-      growth.needs_sunlight === 'true' ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']],
-      growth.not_full_sunlight_multiplier ? (growth.not_full_sunlight_multiplier * 100) + '%' : null,
-      growth.greenhouse_rate ? [growth.greenhouse_rate * 100 + '%', ['class', 'success']] : ['✗', ['class', 'danger']],
-      growth.greenhouse_ignore_biome ? ['✓', ['class', 'success']] : ['✗', ['class', 'danger']],
-      getSoil(growth.soil_material, growth.soil_max_layers, growth.soil_layer_offset, growth.soil_bonus_per_layer)
-    ].concat(biomeValues).concat([ideals(key, growth, bestValue)]));
+      getSoil(growth.soil_material, growth.soil_max_layers, growth.soil_layer_offset, growth.soil_bonus_per_layer),
+      growth.persistent_growth_period ? hours(growth.persistent_growth_period * soilBonus) : growth.base_rate * soilBonus * 100 + '%',
+      growth.needs_sunlight ? ['✓', ['class', 'warning']] : ['✗', ['class', 'info']],
+      growth.not_full_sunlight_multiplier
+        ? growth.not_full_sunlight_multiplier > 1
+          ? ['×' + growth.not_full_sunlight_multiplier, ['class', 'success']]
+          : ['÷' + (1 / growth.not_full_sunlight_multiplier), ['class', 'danger']]
+        : null,
+      growth.greenhouse_rate
+        ? growth.persistent_growth_period
+          ? [growth.persistent_growth_period * growth.greenhouse_rate + 'h', ['class', 'info']]
+          : [growth.greenhouse_rate * 100 + '%', ['class', 'info']]
+        : ['✗', ['class', 'danger']]
+    ].concat(biomeValues));
+
   }));
   var biomeValues = biomes.map(biomeGrowth.bind(null, config.fish_drops.mat_RAW_FISH, biomesAliasMap));
   var bestValue = _.max([_.max(biomeValues), config.fish_drops.mat_RAW_FISH.base_rate]);
   biomeValues = biomeValues.map(biomeCell.bind(null, config.fish_drops.mat_RAW_FISH, bestValue));
-  row(tbody, ['RAW_FISH', config.fish_drops.mat_RAW_FISH.base_rate * 100 + '%', ['✗', ['class', 'danger']], null, ['✗', ['class', 'danger']], ['✗', ['class', 'danger']], null].concat(biomeValues).concat([ideals('RAW_FISH', config.fish_drops.mat_RAW_FISH, bestValue)]));
+  row(tbody, [
+    'FISHING',
+    null,
+    config.fish_drops.mat_RAW_FISH.base_rate * 100 + '%',
+    ['✗', ['class', 'info']],
+    null,
+    ['✗', ['class', 'danger']],
+  ].concat(biomeValues));
 });
-xhr.open("GET", '//cdn.rawgit.com/Civcraft/RealisticBiomes/master/config.yml', true);
+xhr.open("GET", 'https://raw.githubusercontent.com/Civcraft/RealisticBiomes/master/config.yml', true);
 xhr.send();
