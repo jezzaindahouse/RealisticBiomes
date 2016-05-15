@@ -23,16 +23,16 @@ realistic_biomes:
 
  # catagories of biomes
  biome_aliases:
-  cold: [ICE_PLAINS, ICE_MOUNTAINS, TAIGA, TAIGA_HILLS]
-  cold_forest: [TAIGA, TAIGA_HILLS]
+  cold: [ICE_FLATS, ICE_MOUNTAINS, TAIGA, TAIGA_HILLS]
+  cold_forest: [TAIGA, TAIGA_HILLS, TAIGA_COLD, TAIGA_COLD_HILLS]
   temperate: [PLAINS, FOREST, FOREST_HILLS]
   forest: [FOREST, FOREST_HILLS]
-  mountain: [EXTREME_HILLS, SMALL_MOUNTAINS]
+  mountain: [EXTREME_HILLS, SMALLER_EXTREME_HILLS]
   hot_dry: [DESERT, DESERT_HILLS]
-  hot_rainy: [JUNGLE, JUNGLE_HILLS]
-  water: [BEACH, OCEAN, FROZEN_OCEAN, RIVER, FROZEN_RIVER]
+  hot_rainy: [JUNGLE, JUNGLE_HILLS, JUNGLE_EDGE]
+  water: [BEACHES, OCEAN, FROZEN_OCEAN, RIVER, FROZEN_RIVER]
   freshwater: [RIVER, FROZEN_RIVER]
-  mushroom: [MUSHROOM_ISLAND, MUSHROOM_SHORE]
+  mushroom: [MUSHROOM_ISLAND, MUSHROOM_ISLAND_SHORE]
   other: [HELL, SKY, SWAMPLAND]
 
  # list of crops to be effected by the plugin
@@ -188,7 +188,7 @@ realistic_biomes:
    biomes:
     hot_rainy: 1.0
     SWAMPLAND: 0.5
-    BEACH: 0.5
+    BEACHES: 0.5
     RIVER: 0.5
 
   #----------------------------------------
